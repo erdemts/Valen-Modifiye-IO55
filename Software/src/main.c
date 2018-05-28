@@ -25,6 +25,9 @@ __CONFIG(FOSC_INTRC_NOCLKOUT & WDTE_ON & PWRTE_ON & MCLRE_ON & CP_ON & CPD_ON & 
 
 //#define DEBUG
 
+#define UPPER_TEMP_LIMIT        35
+#define LOWER_TEMP_LIMIT        30
+
 /* DEFINE LOCAL CONSTANTS HERE -----------------------------------------------*/
 #define SM_IDLE                             0
 #define SM_WAIT_STX                         1  
@@ -96,7 +99,8 @@ const float a = 3300.0 / 1024.0;
 volatile signed int currentTemperature;
 char currentTemperatureBuffer[6];
 char printBuffer[6];
-unsigned int dataConversionBuffer;
+volatile signed int dataConversionBuffer;
+bit timeoutFlag;
 
 const signed int V1[11] = {1299, 1247, 1141, 1034, 925, 816, 704, 591, 476, 361, 243};
 const signed int V2[11] = {1252, 1146, 1039, 931, 821, 710, 596, 482, 367, 249, 183};
@@ -152,7 +156,16 @@ main(void) {
     while (1) {
         CLRWDT();
 
-
+        if(timeoutFlag) {
+            timeoutFlag = 0;
+            currentTemperature = getTemperature();
+            dataConversionBuffer = calgulateTemp(currentTemperature);
+        }
+        if (dataConversionBuffer >= UPPER_TEMP_LIMIT) {
+            RELAY_1 = 1;
+        } else if (dataConversionBuffer <= LOWER_TEMP_LIMIT) {
+            RELAY_1 = 0;
+        }
 
         if (inputPort != (PORTB & 0b00010111)) {
             __delay_ms(40);
@@ -331,6 +344,8 @@ void interrupt erdem(void) {
                 {
                     tim1sec = 2;
                     LED_BLUE ^= 1;
+                    timeoutFlag = 1;
+
                 }//--------end period 1 sec.-----------------------------
             }//--------end period 2 Hz.-----------------------------
         }//--------end period 10 Hz.-----------------------------
