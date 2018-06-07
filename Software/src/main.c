@@ -18,39 +18,28 @@
  ******************************************************************************/
 
 
-#include "includes.h"
+#include <htc.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include "HardwareProfile.h"
+#include "uart.h"
+#include "adc.h"
+#include "StringSerialProtocol.h"
+#include "main.h"
 
 __CONFIG(FOSC_INTRC_NOCLKOUT & WDTE_ON & PWRTE_ON & MCLRE_ON & CP_ON & CPD_ON & BOREN_OFF & IESO_OFF & FCMEN_OFF & LVP_OFF & DEBUG_OFF & BOR4V_BOR21V);
 //__CONFIG(FOSC_INTRC_NOCLKOUT & WDTE_OFF & PWRTE_OFF & MCLRE_ON & CP_OFF & CPD_OFF & BOREN_OFF & IESO_OFF & FCMEN_OFF & LVP_ON& DEBUG_OFF & BOR4V_BOR21V );
 
 //#define DEBUG
 
+
 #define UPPER_TEMP_LIMIT        35
 #define LOWER_TEMP_LIMIT        30
 
-/* DEFINE LOCAL CONSTANTS HERE -----------------------------------------------*/
-#define SM_IDLE                             0
-#define SM_WAIT_STX                         1  
-#define SM_WAIT_R                           2
-#define SM_WAIT_O                           3
-#define SM_WAIT_L                           4
-#define SM_WAIT_E                           5
-#define SM_WAIT_DOT                         6
-#define SM_WAIT_DATA                        7
-#define SM_WAIT_ETX                         8
-#define SM_CMD_READY                        9
-#define SM_WAIT_FIRST_CHAR                  10
-#define SM_WAIT_I                           11
-#define SM_WAIT_S                           12
-#define SM_WAIT_I2                          13
-#define SM_WAIT_DOT2                        14
-#define SM_WAIT_ETX2                        15
 
-
-#define COMMUNICATION_TIMEOUT_VALUE         3000 //3000 x 100 ms = 5 minutes
 
 // Üretim Konfigurasyonu
-__EEPROM_DATA('1', '0', 0, 0, 0, 0, 0, 0);
+__EEPROM_DATA('1', '0', 0, 0, 0, DEFAULT_TEMPERATURE_OFFSET_0, DEFAULT_TEMPERATURE_OFFSET_1, DEFAULT_TEMPERATURE_OFFSET_2);
 
 
 /* DEFINE LOCAL TYPES HERE ---------------------------------------------------*/
@@ -78,28 +67,15 @@ bit RELAY_5_Timer_En;
 
 volatile unsigned int communicationControlTimer;
 bit communicationControlTimer_En;
-
-volatile unsigned char uartReceiveBuffer[UART_RECEIVE_BUFFER_SIZE];
-volatile unsigned char uartReceiveBufferR = 0;
-volatile unsigned char uartReceiveBufferW = 0;
-
-volatile unsigned char uartTransmitBuffer[UART_TRANSMIT_BUFFER_SIZE];
-volatile unsigned char uartTransmitBufferR = 0;
-volatile unsigned char uartTransmitBufferW = 0;
-
-unsigned char dataBuffer[10];
 unsigned char inputPort;
 
-volatile unsigned char buffer_SM = SM_WAIT_STX;
-
-unsigned char bufferValue = 0;
 volatile unsigned char timer = 0;
 
 const float a = 3300.0 / 1024.0;
-volatile signed int currentTemperature;
+volatile signed int temperature_mV;
 char currentTemperatureBuffer[6];
 char printBuffer[6];
-volatile signed int dataConversionBuffer;
+volatile signed int currentTemperature;
 bit timeoutFlag;
 
 const signed int V1[11] = {1299, 1247, 1141, 1034, 925, 816, 704, 591, 476, 361, 243};
@@ -110,20 +86,17 @@ signed int calgulateTemp(signed int milliVolt);
 
 
 /* DECLARE EXTERNAL VARIABLES HERE -------------------------------------------*/
+extern volatile unsigned char uartTransmitBufferR;
+extern volatile unsigned char uartTransmitBufferW;
 /* DECLARE LOCAL FUNCTIONS HERE ----------------------------------------------*/
 void vInitializeBoard(void);
-void vAddToUartReceiveBuffer(unsigned char data);
-unsigned char cGetFromReceiveBuffer(void);
-void vAddToUartTransmitBuffer(unsigned char data);
-unsigned char cGetFromTxBuffer(void);
 void vPulseRelay(unsigned char relay, unsigned char timerValue);
 void vSetRelay(unsigned char relay, unsigned char value);
-void vSendDataToUart(void);
 void setCommunicationTimeOut(unsigned int value);
 void restartUSR_K2(void);
 unsigned int getTemperature(void);
 void vResetPrintBuffer(void);
-void vSendTempToBuffer(int convData);
+void vSendTemperatureToBuffer(int convData);
 
 /* DEFINE FUNCTIONS HERE -----------------------------------------------------*/
 /* DEFINE LOCAL FUNCTIONS HERE -----------------------------------------------*/
@@ -140,30 +113,30 @@ void vSendTempToBuffer(int convData);
  *
  ******************************************************************************/
 main(void) {
-    unsigned char i;
     vInitializeBoard();
     vInitializeUart();
     vInitializeADC();
-    currentTemperature = 0;
+    temperature_mV = 0;
     PEIE = 1;
     GIE = 1;
     ei();
-    uartReceiveBufferW = 0;
-    uartReceiveBufferR = 0;
+
     inputPort = (PORTB & 0b00110111);
     setCommunicationTimeOut(COMMUNICATION_TIMEOUT_VALUE); //Cihaza module 60 sn boyunca bir komut gelmezse ethernet modul resetlenir.
 
     while (1) {
         CLRWDT();
 
-        if(timeoutFlag) {
+        if (timeoutFlag) {
             timeoutFlag = 0;
-            currentTemperature = getTemperature();
-            dataConversionBuffer = calgulateTemp(currentTemperature);
+            temperature_mV = getTemperature();
+            currentTemperature = calgulateTemp(temperature_mV);
+            currentTemperature += temperatureOffset();
+            
         }
-        if (dataConversionBuffer >= UPPER_TEMP_LIMIT) {
+        if (currentTemperature >= UPPER_TEMP_LIMIT) {
             RELAY_1 = 1;
-        } else if (dataConversionBuffer <= LOWER_TEMP_LIMIT) {
+        } else if (currentTemperature <= LOWER_TEMP_LIMIT) {
             RELAY_1 = 0;
         }
 
@@ -190,114 +163,7 @@ main(void) {
             }
         }
 
-        if (uartReceiveBufferW != uartReceiveBufferR) {
-            bufferValue = cGetFromReceiveBuffer();
-            if (buffer_SM == SM_WAIT_STX) {
-                if (bufferValue == '<') {
-                    buffer_SM = SM_WAIT_FIRST_CHAR;
-                }
-            } else if (buffer_SM == SM_WAIT_FIRST_CHAR) {
-                if (bufferValue == 'R') {
-                    buffer_SM = SM_WAIT_O;
-                } else if (bufferValue == 'I') {
-                    buffer_SM = SM_WAIT_S;
-                } else {
-                    buffer_SM = SM_WAIT_STX;
-                }
-            } else if (buffer_SM == SM_WAIT_O) {
-                if (bufferValue == 'O') {
-                    buffer_SM = SM_WAIT_L;
-                } else {
-                    buffer_SM = SM_WAIT_STX;
-                }
-            } else if (buffer_SM == SM_WAIT_L) {
-                if (bufferValue == 'L') {
-                    buffer_SM = SM_WAIT_E;
-                } else {
-                    buffer_SM = SM_WAIT_STX;
-                }
-            } else if (buffer_SM == SM_WAIT_E) {
-                if (bufferValue == 'E') {
-                    buffer_SM = SM_WAIT_DOT;
-                } else {
-                    buffer_SM = SM_WAIT_STX;
-                }
-            } else if (buffer_SM == SM_WAIT_DOT) {
-                if (bufferValue == ':') {
-                    buffer_SM = SM_WAIT_DATA;
-                } else {
-                    buffer_SM = SM_WAIT_STX;
-                }
-            } else if (buffer_SM == SM_WAIT_DATA) {
-                dataBuffer[0] = bufferValue;
-                for (i = 0; i < 5; ++i) {
-                    __delay_ms(1);
-                    dataBuffer[i + 1] = cGetFromReceiveBuffer();
-                    if (dataBuffer[i + 1] == '<') {
-                        buffer_SM = SM_WAIT_R;
-                        break;
-                    } else if (dataBuffer[i + 1] == '>') {
-                        buffer_SM = SM_WAIT_STX;
-                        break;
-                    }
-                    buffer_SM = SM_WAIT_ETX;
-                }
-            } else if (buffer_SM == SM_WAIT_ETX) {
-                if (bufferValue == '>') {
-                    for (i = 0; i < 6; ++i) {
-                        if (dataBuffer[i] == 'A')
-                            vSetRelay(i + 1, 1);
-                        else if (dataBuffer[i] == 'K')
-                            vSetRelay(i + 1, 0);
-                        else if (dataBuffer[i] == '0') {
-                            vPulseRelay(i + 1, 50);
-                        } else if (((dataBuffer[i] - 48) > 0) && ((dataBuffer[i] - 48) <= 9)) {
-                            vPulseRelay(i + 1, (dataBuffer[i] - 48)*5);
-                        }
-                    }
-                    vAddToUartTransmitBuffer('<');
-                    vAddToUartTransmitBuffer('O');
-                    vAddToUartTransmitBuffer('K');
-                    vAddToUartTransmitBuffer('>');
-                    buffer_SM = SM_WAIT_STX;
-                    vSendDataToUart();
-                    setCommunicationTimeOut(COMMUNICATION_TIMEOUT_VALUE); //Cihaza module x sn boyunca bir komut gelmezse ethernet modul resetlenir.
-                } else {
-                    buffer_SM = SM_WAIT_ETX;
-                }
-            } else if (buffer_SM == SM_WAIT_S) {
-                if (bufferValue == 'S') {
-                    buffer_SM = SM_WAIT_I2;
-                } else {
-                    buffer_SM = SM_WAIT_STX;
-                }
-            } else if (buffer_SM == SM_WAIT_I2) {
-                if (bufferValue == 'I') {
-                    buffer_SM = SM_WAIT_ETX2;
-                } else {
-                    buffer_SM = SM_WAIT_STX;
-                }
-            } else if (buffer_SM == SM_WAIT_ETX2) {
-                if (bufferValue == '>') {
-                    currentTemperature = getTemperature();
-                    dataConversionBuffer = calgulateTemp(currentTemperature);
-                    vResetPrintBuffer();
-                    vSendTempToBuffer(dataConversionBuffer);
-                    vAddToUartTransmitBuffer('<');
-                    vAddToUartTransmitBuffer(printBuffer[0]);
-                    vAddToUartTransmitBuffer(printBuffer[1]);
-                    vAddToUartTransmitBuffer(printBuffer[2]);
-                    vAddToUartTransmitBuffer(printBuffer[3]);
-                    vAddToUartTransmitBuffer(printBuffer[4]);
-                    vAddToUartTransmitBuffer('>');
-                    buffer_SM = SM_WAIT_STX;
-                    vSendDataToUart();
-                    setCommunicationTimeOut(COMMUNICATION_TIMEOUT_VALUE); //Cihaza module x sn boyunca bir komut gelmezse ethernet modul resetlenir.
-                } else {
-                    buffer_SM = SM_WAIT_STX;
-                }
-            }
-        }
+        StringSerialProtocolService();
     }
 }
 
@@ -519,104 +385,6 @@ void vInitializeBoard(void) {
     tim1sec = 2;
 }
 
-/*******************************************************************************
- *
- * Function     : void vAddToUartReceiveBuffer(unsigned char data)
- * PreCondition : None
- * Input        : None
- * Output       : None
- * Side Effects : None
- * Overview     :
- * Note         : None
- *
- ******************************************************************************/
-void vAddToUartReceiveBuffer(unsigned char data) {
-    uartReceiveBuffer[ uartReceiveBufferW ] = data;
-    uartReceiveBufferW++;
-    if (uartReceiveBufferW == UART_RECEIVE_BUFFER_SIZE) {
-        uartReceiveBufferW = 0;
-    }
-}
-
-/*******************************************************************************
- *
- * Function     : unsigned char cGetFromReceiveBuffer(void)
- * PreCondition : None
- * Input        : None
- * Output       : None
- * Side Effects : None
- * Overview     :
- * Note         : None
- *
- ******************************************************************************/
-unsigned char cGetFromReceiveBuffer(void) {
-    unsigned char value;
-
-    value = uartReceiveBuffer[uartReceiveBufferR];
-    uartReceiveBufferR++;
-    if (uartReceiveBufferR == UART_RECEIVE_BUFFER_SIZE) {
-        uartReceiveBufferR = 0;
-    }
-    return value;
-}
-
-/*******************************************************************************
- *
- * Function     : void vAddToUartTransmitBuffer(unsigned char data)
- * PreCondition : None
- * Input        : None
- * Output       : None
- * Side Effects : None
- * Overview     :
- * Note         : None
- *
- ******************************************************************************/
-void vAddToUartTransmitBuffer(unsigned char data) {
-    uartTransmitBuffer[uartTransmitBufferW] = data;
-    uartTransmitBufferW++;
-    if (uartTransmitBufferW == UART_TRANSMIT_BUFFER_SIZE) {
-        uartTransmitBufferW = 0;
-    }
-}
-
-/*******************************************************************************
- *
- * Function     : unsigned char cGetFromTxBuffer(void)
- * PreCondition : None
- * Input        : None
- * Output       : None
- * Side Effects : None
- * Overview     :
- * Note         : None
- *
- ******************************************************************************/
-unsigned char cGetFromTxBuffer(void) {
-    unsigned char value;
-
-    value = uartTransmitBuffer[uartTransmitBufferR];
-    uartTransmitBufferR++;
-    if (uartTransmitBufferR == UART_TRANSMIT_BUFFER_SIZE) {
-        uartTransmitBufferR = 0;
-    }
-    return value;
-}
-
-/*******************************************************************************
- *
- * Function     : void void vSendData(void)
- * PreCondition : None
- * Input        : None
- * Output       : None
- * Side Effects : None
- * Overview     :
- * Note         : None
- *
- ******************************************************************************/
-void vSendDataToUart(void) {
-    TXIF = 0;
-    TXIE = 1;
-}
-
 void setCommunicationTimeOut(unsigned int value) {
     communicationControlTimer = value;
     communicationControlTimer_En = 1;
@@ -689,7 +457,7 @@ void vResetPrintBuffer(void) {
     }
 }
 
-void vSendTempToBuffer(int convData) {
+void vSendTemperatureToBuffer(int convData) {
     itoa(currentTemperatureBuffer, convData, 10);
 
     printBuffer[0] = '+';
@@ -806,4 +574,18 @@ signed int calgulateTemp(signed int milliVolt) {
         temperature = 255;
     }
     return temperature;
+}
+
+signed int temperatureOffset(void)
+{
+    signed int offset = 0;
+    
+    offset = 10 * (EEPROM_READ(TEMPERATURE_OFFSET_EEADDR_1) - 48);
+    offset += (EEPROM_READ(TEMPERATURE_OFFSET_EEADDR_2) - 48);
+    
+    if(EEPROM_READ(TEMPERATURE_OFFSET_EEADDR_0) == '-')
+    {
+        offset = offset * (-1);
+    }
+    return offset;
 }

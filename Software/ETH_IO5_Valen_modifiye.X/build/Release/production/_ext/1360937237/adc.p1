@@ -2513,170 +2513,81 @@ Version 3.2 HI-TECH Software Intermediate Code
 [; ;eeprom_routines.h: 43: extern void eecpymem(volatile unsigned char *to, eeprom unsigned char *from, unsigned char size);
 [; ;eeprom_routines.h: 44: extern void memcpyee(eeprom unsigned char *to, const unsigned char *from, unsigned char size);
 [; ;pic.h: 154: extern void _delay(unsigned long);
-[; ;stdlib.h: 4: typedef int ptrdiff_t;
-[; ;stdlib.h: 5: typedef unsigned size_t;
-[; ;stdlib.h: 6: typedef unsigned short wchar_t;
-[; ;stdlib.h: 16: extern int errno;
-[; ;stdlib.h: 27: typedef struct {
-[; ;stdlib.h: 28: int rem;
-[; ;stdlib.h: 29: int quot;
-[; ;stdlib.h: 30: } div_t;
-[; ;stdlib.h: 31: typedef struct {
-[; ;stdlib.h: 32: unsigned rem;
-[; ;stdlib.h: 33: unsigned quot;
-[; ;stdlib.h: 34: } udiv_t;
-[; ;stdlib.h: 35: typedef struct {
-[; ;stdlib.h: 36: long quot;
-[; ;stdlib.h: 37: long rem;
-[; ;stdlib.h: 38: } ldiv_t;
-[; ;stdlib.h: 39: typedef struct {
-[; ;stdlib.h: 40: unsigned long quot;
-[; ;stdlib.h: 41: unsigned long rem;
-[; ;stdlib.h: 42: } uldiv_t;
-[; ;stdlib.h: 65: extern double atof(const char *);
-[; ;stdlib.h: 66: extern double strtod(const char *, const char **);
-[; ;stdlib.h: 67: extern int atoi(const char *);
-[; ;stdlib.h: 68: extern unsigned xtoi(const char *);
-[; ;stdlib.h: 69: extern long atol(const char *);
-[; ;stdlib.h: 70: extern long strtol(const char *, char **, int);
-[; ;stdlib.h: 72: extern int rand(void);
-[; ;stdlib.h: 73: extern void srand(unsigned int);
-[; ;stdlib.h: 74: extern void * calloc(size_t, size_t);
-[; ;stdlib.h: 75: extern div_t div(int numer, int denom);
-[; ;stdlib.h: 76: extern udiv_t udiv(unsigned numer, unsigned denom);
-[; ;stdlib.h: 77: extern ldiv_t ldiv(long numer, long denom);
-[; ;stdlib.h: 78: extern uldiv_t uldiv(unsigned long numer,unsigned long denom);
-[; ;stdlib.h: 79: extern unsigned long _lrotl(unsigned long value, unsigned int shift);
-[; ;stdlib.h: 80: extern unsigned long _lrotr(unsigned long value, unsigned int shift);
-[; ;stdlib.h: 81: extern unsigned int _rotl(unsigned int value, unsigned int shift);
-[; ;stdlib.h: 82: extern unsigned int _rotr(unsigned int value, unsigned int shift);
-[; ;stdlib.h: 106: extern void * malloc(size_t);
-[; ;stdlib.h: 107: extern void free(void *);
-[; ;stdlib.h: 108: extern void * realloc(void *, size_t);
-[; ;stdlib.h: 122: extern void abort(void);
-[; ;stdlib.h: 123: extern void exit(int);
-[; ;stdlib.h: 124: extern int atexit(void (*)(void));
-[; ;stdlib.h: 125: extern char * getenv(const char *);
-[; ;stdlib.h: 126: extern char ** environ;
-[; ;stdlib.h: 127: extern int system(char *);
-[; ;stdlib.h: 128: extern void qsort(void *, size_t, size_t, int (*)(const void *, const void *));
-[; ;stdlib.h: 129: extern void * bsearch(const void *, void *, size_t, size_t, int(*)(const void *, const void *));
-[; ;stdlib.h: 130: extern int abs(int);
-[; ;stdlib.h: 131: extern long labs(long);
-[; ;stdlib.h: 145: extern char * itoa(char * buf, int val, int base);
-[; ;stdlib.h: 146: extern char * utoa(char * buf, unsigned val, int base);
-[; ;stdlib.h: 147: extern char * ltoa(char * buf, long val, int base);
-[; ;stdlib.h: 148: extern char * ultoa(char * buf, unsigned long val, int base);
-[; ;stdarg.h: 31: typedef void * va_list[1];
-[; ;stdarg.h: 34: extern void * __va_start(void);
-[; ;stdarg.h: 37: extern void * __va_arg(void *, ...);
-[; ;stdio.h: 27: extern int errno;
-[; ;stdio.h: 58: struct __prbuf
-[; ;stdio.h: 59: {
-[; ;stdio.h: 60: char * ptr;
-[; ;stdio.h: 61: void (* func)(char);
-[; ;stdio.h: 62: };
-[; ;conio.h: 17: extern int errno;
-[; ;conio.h: 20: extern void init_uart(void);
-[; ;conio.h: 22: extern char getch(void);
-[; ;conio.h: 23: extern char getche(void);
-[; ;conio.h: 24: extern void putch(char);
-[; ;conio.h: 25: extern void ungetch(char);
-[; ;conio.h: 27: extern bit kbhit(void);
-[; ;conio.h: 31: extern char * cgets(char *);
-[; ;conio.h: 32: extern void cputs(const char *);
-[; ;stdio.h: 103: extern int cprintf(char *, ...);
-[; ;stdio.h: 108: extern int _doprnt(struct __prbuf *, const register char *, register va_list);
-[; ;stdio.h: 195: extern char * gets(char *);
-[; ;stdio.h: 196: extern int puts(const char *);
-[; ;stdio.h: 197: extern int scanf(const char *, ...);
-[; ;stdio.h: 198: extern int sscanf(const char *, const char *, ...);
-[; ;stdio.h: 199: extern int vprintf(const char *, va_list);
-[; ;stdio.h: 200: extern int vsprintf(char *, const char *, va_list);
-[; ;stdio.h: 201: extern int vscanf(const char *, va_list ap);
-[; ;stdio.h: 202: extern int vsscanf(const char *, const char *, va_list);
-[; ;stdio.h: 206: extern int sprintf(char *, const char *, ...);
-[; ;stdio.h: 207: extern int printf(const char *, ...);
-[; ;include\uart.h: 71: void vInitializeUart( void );
-[; ;include\uart.h: 84: void vCheckError( void );
-[; ;include\uart.h: 97: void putch( unsigned char c );
-[; ;include\adc.h: 39: void vInitializeADC( void );
-[; ;include\adc.h: 52: unsigned int read_ADC( unsigned char analogChannel );
-"41 ../src/adc.c
+"43 ../src/adc.c
 [v _vInitializeADC `(v  1 ef ]
 {
-[; ;adc.c: 40: void vInitializeADC( void )
-[; ;adc.c: 41: {
+[; ;adc.c: 42: void vInitializeADC( void )
+[; ;adc.c: 43: {
 [e :U _vInitializeADC ]
 [f ]
-[; ;adc.c: 42: (TRISBbits.TRISB5) = 1;
-"42
-[e = . . _TRISBbits 0 5 -> -> 1 `i `uc ]
-[; ;adc.c: 44: ANSELHbits.ANS13 = 1;
+[; ;adc.c: 44: (TRISBbits.TRISB5) = 1;
 "44
-[e = . . _ANSELHbits 0 5 -> -> 1 `i `uc ]
-[; ;adc.c: 46: ADCON0bits.ADCS1 = 1;
+[e = . . _TRISBbits 0 5 -> -> 1 `i `uc ]
+[; ;adc.c: 46: ANSELHbits.ANS13 = 1;
 "46
+[e = . . _ANSELHbits 0 5 -> -> 1 `i `uc ]
+[; ;adc.c: 48: ADCON0bits.ADCS1 = 1;
+"48
 [e = . . _ADCON0bits 2 7 -> -> 1 `i `uc ]
-[; ;adc.c: 47: ADCON0bits.ADCS0 = 0;
-"47
-[e = . . _ADCON0bits 2 6 -> -> 0 `i `uc ]
-[; ;adc.c: 49: ADCON1bits.ADFM = 1;
+[; ;adc.c: 49: ADCON0bits.ADCS0 = 0;
 "49
-[e = . . _ADCON1bits 0 4 -> -> 1 `i `uc ]
-[; ;adc.c: 50: ADCON1bits.VCFG1 = 0;
-"50
-[e = . . _ADCON1bits 0 2 -> -> 0 `i `uc ]
-[; ;adc.c: 51: ADCON1bits.VCFG0 = 0;
+[e = . . _ADCON0bits 2 6 -> -> 0 `i `uc ]
+[; ;adc.c: 51: ADCON1bits.ADFM = 1;
 "51
-[e = . . _ADCON1bits 0 1 -> -> 0 `i `uc ]
-[; ;adc.c: 52: ADCON0bits.ADON = 1;
+[e = . . _ADCON1bits 0 4 -> -> 1 `i `uc ]
+[; ;adc.c: 52: ADCON1bits.VCFG1 = 0;
 "52
-[e = . . _ADCON0bits 0 0 -> -> 1 `i `uc ]
-[; ;adc.c: 53: }
+[e = . . _ADCON1bits 0 2 -> -> 0 `i `uc ]
+[; ;adc.c: 53: ADCON1bits.VCFG0 = 0;
 "53
-[e :UE 146 ]
+[e = . . _ADCON1bits 0 1 -> -> 0 `i `uc ]
+[; ;adc.c: 54: ADCON0bits.ADON = 1;
+"54
+[e = . . _ADCON0bits 0 0 -> -> 1 `i `uc ]
+[; ;adc.c: 55: }
+"55
+[e :UE 141 ]
 }
-"67
+"69
 [v _read_ADC `(ui  1 ef1`uc ]
 {
-[; ;adc.c: 66: unsigned int read_ADC( unsigned char analogChannel )
-[; ;adc.c: 67: {
+[; ;adc.c: 68: unsigned int read_ADC( unsigned char analogChannel )
+[; ;adc.c: 69: {
 [e :U _read_ADC ]
 [v _analogChannel `uc  1 r1 ]
 [f ]
-"68
-[v _adcResult `ui  1 a ]
-[; ;adc.c: 68: unsigned int adcResult = 0;
-[e = _adcResult -> -> 0 `i `ui ]
-[; ;adc.c: 70: ADCON0bits.CHS = analogChannel;
 "70
-[e = . . _ADCON0bits 0 2 _analogChannel ]
-[; ;adc.c: 71: ADCON0bits.GO_DONE = 1;
-"71
-[e = . . _ADCON0bits 4 1 -> -> 1 `i `uc ]
-[; ;adc.c: 72: while(ADCON0bits.GO_DONE) continue;
+[v _adcResult `ui  1 a ]
+[; ;adc.c: 70: unsigned int adcResult = 0;
+[e = _adcResult -> -> 0 `i `ui ]
+[; ;adc.c: 72: ADCON0bits.CHS = analogChannel;
 "72
-[e $U 148  ]
-[e :U 149 ]
-[e $U 148  ]
-[e :U 148 ]
-[e $ != -> . . _ADCON0bits 4 1 `i -> -> -> 0 `i `Vuc `i 149  ]
-[e :U 150 ]
-[; ;adc.c: 73: adcResult = ADRESH;
+[e = . . _ADCON0bits 0 2 _analogChannel ]
+[; ;adc.c: 73: ADCON0bits.GO_DONE = 1;
 "73
-[e = _adcResult -> _ADRESH `ui ]
-[; ;adc.c: 74: adcResult <<= 8;
+[e = . . _ADCON0bits 4 1 -> -> 1 `i `uc ]
+[; ;adc.c: 74: while(ADCON0bits.GO_DONE) continue;
 "74
-[e =<< _adcResult -> 8 `i ]
-[; ;adc.c: 75: adcResult |= ADRESL;
+[e $U 143  ]
+[e :U 144 ]
+[e $U 143  ]
+[e :U 143 ]
+[e $ != -> . . _ADCON0bits 4 1 `i -> -> -> 0 `i `Vuc `i 144  ]
+[e :U 145 ]
+[; ;adc.c: 75: adcResult = ADRESH;
 "75
-[e =| _adcResult -> _ADRESL `ui ]
-[; ;adc.c: 77: return adcResult;
+[e = _adcResult -> _ADRESH `ui ]
+[; ;adc.c: 76: adcResult <<= 8;
+"76
+[e =<< _adcResult -> 8 `i ]
+[; ;adc.c: 77: adcResult |= ADRESL;
 "77
+[e =| _adcResult -> _ADRESL `ui ]
+[; ;adc.c: 79: return adcResult;
+"79
 [e ) _adcResult ]
-[e $UE 147  ]
-[; ;adc.c: 78: }
-"78
-[e :UE 147 ]
+[e $UE 142  ]
+[; ;adc.c: 80: }
+"80
+[e :UE 142 ]
 }

@@ -5,10 +5,10 @@
                    displayName="Header Files"
                    projectFiles="true">
       <itemPath>../include/HardwareProfile.h</itemPath>
-      <itemPath>../include/commands.h</itemPath>
-      <itemPath>../include/includes.h</itemPath>
       <itemPath>../include/uart.h</itemPath>
       <itemPath>../include/adc.h</itemPath>
+      <itemPath>../include/StringSerialProtocol.h</itemPath>
+      <itemPath>../include/main.h</itemPath>
     </logicalFolder>
     <logicalFolder name="SourceFiles"
                    displayName="Source Files"
@@ -16,6 +16,7 @@
       <itemPath>../src/main.c</itemPath>
       <itemPath>../src/uart.c</itemPath>
       <itemPath>../src/adc.c</itemPath>
+      <itemPath>../src/StringSerialProtocol.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
